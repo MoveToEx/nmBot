@@ -1,0 +1,155 @@
+[
+    {
+        "id": "pointing_up",
+        "file": "file_124852239.jpg",
+        "rect": {
+            "left": 0,
+            "right": 954,
+            "top": 668,
+            "bottom": 898
+        },
+        "style": {}
+    },
+    {
+        "id": "default",
+        "file": "file_124852240.jpg",
+        "rect": {
+            "left": 0,
+            "right": 512,
+            "top": 399,
+            "bottom": 483
+        },
+        "style": {}
+    },
+    {
+        "id": "sweat",
+        "file": "file_124852241.jpg",
+        "rect": {
+            "left": 0,
+            "right": 512,
+            "top": 438,
+            "bottom": 569
+        },
+        "style": {}
+    },
+    {
+        "id": "accio",
+        "file": "file_124852242.jpg",
+        "rect": {
+            "left": 0,
+            "right": 747,
+            "top": 0,
+            "bottom": 369
+        },
+        "style": {}
+    },
+    {
+        "id": "xibao",
+        "file": "file_124852243.jpg",
+        "rect": {
+            "left": 0,
+            "right": 467,
+            "top": 0,
+            "bottom": 350
+        },
+        "style": {
+            "color": "#FF0000",
+            "max_fontsize": 64,
+            "weight": "bold",
+            "stroke_color": "#ffff43",
+            "stroke_ratio": 0.05
+        }
+    },
+    {
+        "id": "cry",
+        "file": "file_124852244.jpg",
+        "rect": {
+            "left": 0,
+            "right": 512,
+            "top": 369,
+            "bottom": 494
+        },
+        "style": {}
+    },
+    {
+        "id": "pointing_down",
+        "file": "file_124852245.jpg",
+        "rect": {
+            "left": 0,
+            "right": 300,
+            "top": 0,
+            "bottom": 80
+        },
+        "style": {}
+    },
+    {
+        "id": "pointing_round",
+        "file": "file_124852246.jpg",
+        "rect": {
+            "left": 0,
+            "right": 300,
+            "top": 0,
+            "bottom": 40
+        },
+        "style": {}
+    },
+    {
+        "id": "covering_ears",
+        "file": "file_124852247.jpg",
+        "rect": {
+            "left": 0,
+            "right": 300,
+            "top": 254,
+            "bottom": 326
+        },
+        "style": {}
+    },
+    {
+        "id": "dodge",
+        "file": "file_124852248.jpg",
+        "rect": {
+            "left": 0,
+            "right": 360,
+            "top": 308,
+            "bottom": 379
+        },
+        "style": {}
+    },
+    {
+        "id": "beibao",
+        "file": "file_124852249.jpg",
+        "rect": {
+            "left": 0,
+            "right": 467,
+            "top": 0,
+            "bottom": 348
+        },
+        "style": {
+            "color": "#595959",
+            "max_fontsize": 64,
+            "weight": "bold",
+            "stroke_color": "#f8f8f8",
+            "stroke_ratio": 0.05
+        }
+    },
+    {
+        "id": "pointing_left",
+        "file": "file_124852250.jpg",
+        "rect": {
+            "left": 0,
+            "right": 746,
+            "top": 383,
+            "bottom": 546
+        }
+    },
+    {
+        "id": "pointing_right",
+        "file": "file_124852251.jpg",
+        "rect": {
+            "left": 0,
+            "right": 493,
+            "top": 500,
+            "bottom": 658
+        }
+    }
+]
