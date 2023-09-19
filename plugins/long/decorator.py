@@ -72,7 +72,7 @@ class Decorator:
                     return
 
                 if len(res_friends) + len(res_groups) > 1:
-                    await _respond(bot, event, f"[ERROR] Identity {self.target[1]} is ambiguous")
+                    await _respond(bot, event, f"Identity {self.target[1]} is ambiguous")
                     return
                 
                 if len(res_friends):
@@ -84,7 +84,7 @@ class Decorator:
 
             if self.target[0] == 'user':
                 if not self.target[1] in friends:
-                    await _respond(bot, event, f"[ERROR] Bot has not friended {self.target[1]}")
+                    await _respond(bot, event, f"Bot has not friended {self.target[1]}")
                 else:
                     for i in images:
                         await bot.send_private_msg(user_id=self.target[1], message=[
@@ -92,14 +92,14 @@ class Decorator:
                         ])
             elif self.target[0] == 'group':
                 if not self.target[1] in groups:
-                    await _respond(bot, event, f"[ERROR] Bot has not joined group {self.target[1]}")
+                    await _respond(bot, event, f"Bot has not joined group {self.target[1]}")
                 else:
                     for i in images:
                         await bot.send_group_msg(group_id=self.target[1], message=[
                             MessageSegment.image(i)
                         ])
 
-            await _respond(bot, event, f"[INFO] Success msg -> {self.target[0]} {self.target[1]}")
+            await _respond(bot, event, f"Forwarded msg to {self.target[0]} {self.target[1]}")
         else:
             for i in images:
                 await _respond(bot, event, [ MessageSegment.image(i) ])
