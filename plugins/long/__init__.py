@@ -24,14 +24,15 @@ __plugin_meta__ = PluginMetadata(
     name="Long",
     description="",
     usage=""".l|long [selector] [decorator] 按照selector搜索龙图，并按照decorator返回结果
-.plot <id> [text] 在模板id上绘制文字text并返回结果
+.long.plot|plot <id> [text] 在模板id上绘制文字text并返回结果
 .long.list|ls <selector> 返回所有与selector匹配的结果
-.stat 查询龙图状态
-.upload <img> [text] [#tag1] [#tag2] [...] 上传龙图，图片也可通过回复消息传入
+.long.plot.list|pll 显示所有可用模板
+.long.stat|stat 显示统计信息
+.long.upload|upload <img> [text] [#tag1] [#tag2] [...] 上传龙图，图片也可通过回复消息传入
 
 selector的格式如下：
     text 指定在文字中搜索
-    #text 指定在标签中搜索，可指定多个
+    #text 指定在标签中搜索
     =text 指定UID
     其中text可用的格式如下：
         text|c(text) 查找子串
@@ -39,11 +40,12 @@ selector的格式如下：
         e(text) 精确匹配
     多个selector以逻辑与形式结合
     当selector以!开头时，该selector的匹配结果将取反
+    selector带有简单语义分析，能够解析以括号包围的空格
         
 decorator的格式如下：
-    :r|rand|random 随机选取一个条目
+    :r|rand|random 随机选取一个条目（默认）
     :<index> 选取第index个条目
-    :a|all 指定所有条目，若未指定则随机选取一个条目
+    :a|all 指定所有条目
     *<multipler> 重复选取并发送multipler次，若不指定则发送一次
     ><target> 将结果发送至target，若不指定则发送至调用方
     其中target的格式如下：
