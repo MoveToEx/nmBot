@@ -39,7 +39,7 @@ async def _(bot: Bot, msg: Message = CommandArg()):
 
 @ping.handle()
 async def _():
-    ping.finish('pong')
+    await ping.finish('pong')
 
 # @friend_add.handle()
 # async def _(bot: Bot, event: FriendAddNoticeEvent):

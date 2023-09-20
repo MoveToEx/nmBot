@@ -10,6 +10,7 @@ from nonebot.plugin import PluginMetadata
 from pil_utils import BuildImage
 import imghdr
 import uuid
+from io import BytesIO
 import requests
 import os
 from time import time
@@ -18,6 +19,7 @@ from .config import Config
 from .selector import Selector
 from .database import Database
 from .decorator import Decorator
+from .api import *
 from .utils import *
 
 __plugin_meta__ = PluginMetadata(
@@ -61,8 +63,7 @@ config = Config.parse_obj(global_config)
 if not config.WORKDIR.exists():
     os.makedirs(config.WORKDIR)
 
-images = Database(config.WORKDIR, 'images')
-templates = Database(config.WORKDIR, 'templates')
+hub = LongHubAPI(config.LONG_HUB_URL)
 
 long = on_command('long', aliases={'l'}, priority=7, block=True)
 long_list = on_command(('long', 'list'), aliases={'ls'}, priority=7, block=True)
@@ -76,8 +77,9 @@ manage = on_command('manage', priority=7, block=True)
 async def long_main(bot: Bot, event: Event, arg: Message = CommandArg()):
     decorator, rest = Decorator.parse(arg.extract_plain_text())
     selector = Selector.parse(rest)
+    images = hub.get_posts()
 
-    res = [ images.file(x['file']) for x in selector.match(images) ]
+    res = [ x['image'] for x in selector.match(images) ]
 
     if decorator.repeat > config.MAX_REPEAT:
         await long.finish(f'[ERROR] Repeating more than {config.MAX_REPEAT} times is not allowed')
@@ -88,22 +90,19 @@ async def long_main(bot: Bot, event: Event, arg: Message = CommandArg()):
         await decorator.send(bot, event, res)
 
 @long_list.handle()
-async def list_prep(matcher: Matcher, args: Message = CommandArg()):
-    plain_text = args.extract_plain_text()
-    if plain_text:
-        matcher.set_arg("selector", args)
-
-@long_list.got("selector", prompt="Selector?")
-async def list_main(bot: Bot, event: Event, selector: Message = Arg()):
-    res = Selector.parse(selector.extract_plain_text()).match(images)
+async def _(bot: Bot, event: Event, args: Message = CommandArg()):
+    images = hub.get_posts()
+    res = Selector.parse(args.extract_plain_text()).match(images)
 
     if len(res) == 0:
         await long_list.finish("No results found")
     else:
-        await send_forward_msg(bot, event, [ MessageSegment.image(images.file(x['file']).as_uri()) for x in res ])
+        await send_forward_msg(bot, event, [ MessageSegment.image(x['image']) for x in res ])
 
 @long_upload.handle()
 async def upload_main(event: Event, args: Message = CommandArg()):
+    await long_upload.finish('[WARNING] Uploading is temporarily disabled. Use long-hub instead.')
+    return
     image = None
     tags = []
     text = ""
@@ -157,13 +156,14 @@ async def upload_main(event: Event, args: Message = CommandArg()):
 @long_plot.handle()
 async def plot_main(bot: Bot, event: Event, args: Message = CommandArg()):
     decorator, rest = Decorator.parse(args.extract_plain_text())
+    templates = hub.get_templates()
 
     a = rest.split(' ')
 
     if len(a) < 1:
         await long_plot.finish(f"[ERROR] At least 1 parameters required")
 
-    t = [x for x in templates if x['id'] == a[0]]
+    t = [x for x in templates if x['name'] == a[0]]
     text = ' '.join(a[1:]) if len(a) > 1 else ""
 
     if not t:
@@ -172,8 +172,10 @@ async def plot_main(bot: Bot, event: Event, args: Message = CommandArg()):
     t = t[0]
     style = t.get('style', {})
 
+    raw = requests.get(t['image'])
+
     param = {
-        'xy': (t['rect']['left'], t['rect']['top'], t['rect']['right'], t['rect']['bottom']),
+        'xy': (t['left'], t['top'], t['right'], t['bottom']),
         'text': text,
         'max_fontsize': style.get('max_fontsize', 999),
         'fill': style.get('color', '#000000'),
@@ -182,7 +184,7 @@ async def plot_main(bot: Bot, event: Event, args: Message = CommandArg()):
         'stroke_ratio': style.get('stroke_ratio', 0)
     }
 
-    img = BuildImage.open(templates.file(t['file'])).draw_text(**param).save_jpg()
+    img = BuildImage.open(BytesIO(raw.content)).draw_text(**param).save_jpg()
 
     await decorator.send(bot, event, [ img ])
 
@@ -190,6 +192,7 @@ async def plot_main(bot: Bot, event: Event, args: Message = CommandArg()):
 @manage.handle()
 async def manage_main(args: Message = CommandArg()):
     a = args.extract_plain_text().split()
+    images = []
     try:
         if a[0] == 'query':
             selector = Selector.parse(' '.join(a[1:]), Decorator.PREFIX)
@@ -202,25 +205,6 @@ async def manage_main(args: Message = CommandArg()):
                 for i in res:
                     s += f"@{i['uid']}, text={i['text']}, tags={i['tags']}, file={i['file']}\n"
                 await manage.send(s)
-        elif a[0] == 'modify':
-            selector = Selector.parse(a[1], Decorator.PREFIX)
-            res = selector.match(images)
-            key = a[2]
-            value = ' '.join(a[3:])
-            if len(res) == 0:
-                await manage.send("No images found")
-            else:
-                for i in res:
-                    if key == 'text':
-                        i['text'] = value if value != '$empty' else ''
-                    elif key == 'tags':
-                        i['tags'] = value.split(" ,#") if value != '$empty' else []
-                    else:
-                        await manage.send(f"Modification of {key} is not supported")
-
-                images.save()
-
-                await manage.send(f"{len(res)} images modified")
         else:
             await manage.send("Unknown command")
     except Exception as e:
@@ -228,12 +212,14 @@ async def manage_main(args: Message = CommandArg()):
 
 @long_plot_list.handle()
 async def plot_list_main():
+    templates = hub.get_templates()
     s = f"Currently {len(templates)} templates available:\n"
-    s += ' '.join([ i['id'] for i in templates ])
+    s += ' '.join([ i['name'] for i in templates ])
     await long_plot_list.finish(s)
 
 @long_stat.handle()
 async def stat_main():
-    s = "nmBot online.\n"
-    s += f"{len(images)} images, {len(templates)} templates available\n"
+    images = hub.get_posts()
+    templates = hub.get_templates()
+    s = f"{len(images)} images, {len(templates)} templates available\n"
     await long_stat.finish(s)
