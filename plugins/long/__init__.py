@@ -67,6 +67,7 @@ long_list = on_command(('long', 'list'), aliases={'ls'}, priority=7, block=True)
 long_upload = on_command(('long', 'upload'), aliases={'upload'}, priority=7, block=True)
 long_stat = on_command(('long', 'stat'), aliases={'stat'}, priority=7, block=True)
 long_plot = on_command(('long', 'plot'), aliases={'plot'}, priority=7, block=True)
+long_plot_list = on_command(('long', 'plot', 'list'), aliases={'pll'}, priority=7, block=True)
 manage = on_command('manage', priority=7, block=True)
 
 @long.handle()
@@ -218,15 +219,16 @@ async def manage_main(args: Message = CommandArg()):
                 images.save()
 
                 await manage.send(f"{len(res)} images modified")
-        elif a[0] == 'templates':
-            s = f"Currently {len(templates)} templates available:\n"
-            for i in templates:
-                s += f"{i['id']}\n"
-            await manage.send(s)
         else:
             await manage.send("Unknown command")
     except Exception as e:
         await manage.send("Exception: " + str(e))
+
+@long_plot_list.handle()
+async def plot_list_main():
+    s = f"Currently {len(templates)} templates available:\n"
+    s += ' '.join([ i['id'] for i in templates ])
+    await long_plot_list.finish(s)
 
 @long_stat.handle()
 async def stat_main():

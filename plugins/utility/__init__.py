@@ -17,8 +17,8 @@ __plugin_meta__ = PluginMetadata(
     name="Utility",
     description="",
     usage=""".broadcast <message>
-向bot加入的群组广播消息
-仅限超级用户
+    向bot加入的群组广播消息
+    仅限超级用户
 """
 )
 
