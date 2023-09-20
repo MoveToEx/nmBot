@@ -170,7 +170,7 @@ async def plot_main(bot: Bot, event: Event, args: Message = CommandArg()):
         await long_plot.finish(f"[ERROR] Invalid template id {a[0]}")
 
     t = t[0]
-    style = t.get('style', {})
+    style = t.get('styles', {})
 
     raw = requests.get(t['image'])
 
