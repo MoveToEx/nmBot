@@ -29,7 +29,7 @@ broadcast = on_command('broadcast', priority=90, block=True, permission=SUPERUSE
 
 @broadcast.handle()
 async def _(bot: Bot, msg: Message = CommandArg()):
-    groups = await bot.get_group_list()
+    groups = set([ x['group_id'] for x in await bot.get_group_list() ])
     for i in groups:
         await bot.send_group_msg(group_id=i['group_id'], message=msg.extract_plain_text())
     await broadcast.finish('Broadcast complete')
