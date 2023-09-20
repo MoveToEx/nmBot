@@ -1,9 +1,6 @@
 from nonebot import get_driver, on_message
-from nonebot.adapters import Message
 from nonebot.params import *
-from nonebot.adapters.onebot.v11.helpers import MessageSegment
 from nonebot.adapters.onebot.v11.event import *
-from nonebot.adapters.onebot.v11.bot import Bot
 from nonebot.plugin import PluginMetadata
 
 from .config import Config
@@ -21,27 +18,26 @@ __plugin_meta__ = PluginMetadata(
 
 repeater = on_message(priority=99)
 
-last_msg_hash = None
-repeat_count = 1
+data = {}
 
 @repeater.handle()
-async def repeater_main(event: Event):
-    
-    if not isinstance(event, GroupMessageEvent):
-        return
-    
-    global last_msg_hash
-    global repeat_count
+async def _(event: GroupMessageEvent):
+    global data
 
     msg_hash = MessageHash.hash(event.get_message())
 
-    if msg_hash == last_msg_hash:
-        repeat_count = repeat_count + 1
-        if repeat_count == config.REPEAT_THRESHOLD:
+    if not data.get(event.group_id):
+        data[event.group_id] = {
+            'hash': msg_hash,
+            'count': 1
+        }
+    elif msg_hash == data[event.group_id]['hash']:
+        data[event.group_id]['count'] += 1
+        if data[event.group_id]['count'] == config.REPEAT_THRESHOLD:
             await repeater.send(event.get_message())
-            repeat_count = repeat_count + 1
+            data[event.group_id]['count'] += 1
     else:
-        repeat_count = 1
+        data[event.group_id]['count'] = 1
     
-    last_msg_hash = msg_hash
+    data[event.group_id]['hash'] = msg_hash
     
