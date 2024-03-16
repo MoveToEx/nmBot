@@ -1,10 +1,10 @@
-from nonebot import on_command, get_driver, require, get_bot
+from nonebot import on_command, require, get_plugin_config
 from nonebot.matcher import Matcher
 from nonebot.adapters import Message
 from nonebot.plugin import PluginMetadata
-from nonebot.params import Arg, CommandArg, ArgPlainText
-from nonebot.adapters.onebot.v11.bot import Bot
+from nonebot.params import CommandArg, ArgPlainText
 from nonebot.adapters.onebot.v11.helpers import Cooldown
+from nonebot import logger
 
 import random
 import os
@@ -12,22 +12,18 @@ import json
 from time import time
 from .config import Config
 
-require('nonebot_plugin_apscheduler')
-
-from nonebot_plugin_apscheduler import scheduler
-
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
-
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="ICU",
     description="",
     usage=f""".icu|fb|发病 <object> 对object发病
+.icu.sync 同步文本库
 声明：所有文本均来源于互联网，开发者仅负责收集与更改格式，其他内容与开发者无关"""
 )
 
 icu = on_command("icu", aliases={'发病', 'fb'}, priority=7, block=True)
+icu_sync = on_command(('icu', 'sync'), priority=7, block=True)
 db = []
 
 if not config.WORKDIR.exists():
@@ -48,3 +44,7 @@ async def fb_main(param: str = ArgPlainText("text")):
     s = random.choice(db).replace("{}", param)
     await icu.finish(s)
 
+@icu_sync.handle()
+async def icu_sync_():
+    logger.info('')
+    pass

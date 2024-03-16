@@ -17,8 +17,7 @@ __plugin_meta__ = PluginMetadata(
     usage=f""".ghsync 同步repo"""
 )
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 ghsync = on_command('ghsync', priority=7, block=True)
 
@@ -38,8 +37,7 @@ async def _() -> list:
 
     for repo in config.REPO:
         try:
-            res = requests.get(
-                repo['api'], proxies=global_config.github_proxy).content
+            res = requests.get(repo['api']).content
             res = json.loads(res)
         except Exception as e:
             info.append((repo['name'], 'failed: ' + str(e)))
@@ -59,7 +57,7 @@ async def _() -> list:
 
         try:
             content = requests.get(
-                res['download_url'], proxies=global_config.github_proxy)
+                res['download_url'])
         except Exception as e:
             info.append((repo['name'], 'failed: ' + str(e)))
             logger.warning(f"Unable to sync repo {repo['name']}: {str(e)}")

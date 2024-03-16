@@ -1,21 +1,18 @@
-from nonebot_plugin_apscheduler import scheduler
 from nonebot import *
-from nonebot.plugin import PluginMetadata
+from nonebot.params import *
 from nonebot.rule import to_me
+from nonebot.plugin import PluginMetadata
+from nonebot.config import Config
 from nonebot.adapters.onebot.v11.bot import Bot
-from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11.event import *
 
 import random
-import os
 import json
 from .config import Config
 
 require('nonebot_plugin_apscheduler')
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
-
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="Anime Thesaurus",
@@ -23,20 +20,17 @@ __plugin_meta__ = PluginMetadata(
     usage=f"""<empty>"""
 )
 
-ats = on_message(to_me(), priority=99, block=True)
+ats = on_message(rule=to_me(), priority=99)
 poke = on_notice()
+with open(config.DB_PATH, 'r', encoding='utf8') as f:
+    db = json.loads(f.read())
 
 def get_content(kw: str) -> list[str]:
-    with open(config.DB_PATH, 'r', encoding='utf8') as f:
-        db = json.loads(f.read())
 
     a = [ x for x in db if kw in x['keyword']]
 
     if len(a) == 0:
-        a = [ x for x in db if x['keyword'][0] == '_fallback' ]
-
-    if len(a) == 0:
-        return '[WARNING] No fallback entry found'
+        return None
 
     a = random.choice(a)
 
@@ -54,8 +48,14 @@ async def _(bot: Bot, event: PokeNotifyEvent):
 
 
 @ats.handle()
-async def _(event: Event):
+async def _(matcher: Matcher, event: Event):
     s = event.get_message().extract_plain_text().strip()
+
+    result = get_content(s)
+
+    if result == None:
+        return
     
+    matcher.stop_propagation()
     await ats.finish(get_content(s))
 

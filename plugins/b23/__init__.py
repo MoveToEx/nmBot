@@ -1,4 +1,4 @@
-from nonebot import on_message, get_driver
+from nonebot import on_message, get_plugin_config
 from nonebot.adapters import Message
 from nonebot.matcher import Matcher
 from nonebot.params import *
@@ -6,16 +6,14 @@ from nonebot.params import *
 from .config import Config
 
 import requests
-import json
 import re
-import html
 from bs4 import BeautifulSoup
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 b23 = on_message(priority=90, block=False)
 
+# TODO Broken. Fix later
 
 @b23.handle()
 async def _(matcher: Matcher, msg: Message = EventMessage()):

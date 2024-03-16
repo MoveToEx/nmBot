@@ -10,8 +10,7 @@ from nonebot.permission import SUPERUSER
 
 from .config import Config
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="Utility",

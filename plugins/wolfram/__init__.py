@@ -1,16 +1,16 @@
-from nonebot.adapters import Bot, Event, Message
+from nonebot.adapters import Message
 from nonebot.adapters.onebot.v11 import MessageSegment
 from nonebot.params import CommandArg
-from nonebot.matcher import Matcher
 from nonebot import on_command, get_driver
 from nonebot.plugin import PluginMetadata
+from nonebot import logger, get_plugin_config
+import aiohttp
+import puremagic
 import urllib
-import requests
 
 from .config import Config
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="Wolfram|Alpha",
@@ -21,19 +21,23 @@ __plugin_meta__ = PluginMetadata(
 
 calc = on_command("calc", aliases={'计算'}, block=True)
 
-def get_calc(question: str):
-    apikey = global_config.wolframalpha_api_key
-    url = f"http://api.wolframalpha.com/v1/simple?appid={apikey}&i={urllib.parse.quote(question)}&units=metric"
-    res = requests.get(url=url, proxies=global_config.wolframalpha_proxy)
-    return res.content
-
 @calc.handle()
 async def calc_main(arg: Message = CommandArg()):
-    try:
-        arg = arg.extract_plain_text().strip()
-        if not arg:
-            await calc.finish("No input given")
-        result = get_calc(arg)
-        await calc.send(MessageSegment.image(result))
-    except Exception as e:
-        await calc.send(f"[ERROR] {str(e)}")
+    arg = arg.extract_plain_text().strip()
+    if not arg:
+        await calc.finish("No input given")
+        
+    apikey = config.wolframalpha_api_key
+    url = f"http://api.wolframalpha.com/v1/simple?appid={apikey}&i={urllib.parse.quote(arg)}&units=metric"
+    session = aiohttp.ClientSession(trust_env=True)
+
+    async with session.get(url) as response:
+        content = await response.read()
+        await session.close()
+        mime = puremagic.from_string(content, mime=True)
+        if mime == 'text/plain':
+            await calc.finish(MessageSegment.text(content.decode()))
+        elif mime.startswith('image'):
+            await calc.finish(MessageSegment.image(content))
+        else:
+            await calc.finish('Unexpected response type: ' + mime)

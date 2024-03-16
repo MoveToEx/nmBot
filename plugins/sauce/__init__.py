@@ -1,4 +1,4 @@
-from nonebot import get_driver, on_command
+from nonebot import on_command, get_plugin_config
 from nonebot.adapters import Message
 from nonebot.params import *
 from nonebot.adapters.onebot.v11.helpers import MessageSegment
@@ -10,11 +10,11 @@ from .config import Config
 from .formats import db_formats
 
 import json
-import requests
-import imghdr
+import aiohttp
+import puremagic
+import mimetypes
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="SauceNAO",
@@ -45,7 +45,7 @@ async def send_forward_msg(bot: Bot, event: Event, message: list, name: str, uid
 @sauce.handle()
 async def sauce_main(bot: Bot, event: Event, args: Message = CommandArg()):
     img = None
-
+    session = aiohttp.ClientSession(trust_env=True)
     data = event.dict()
     if data.get('reply', None):
         for seg in data['reply']['message']:
@@ -65,67 +65,55 @@ async def sauce_main(bot: Bot, event: Event, args: Message = CommandArg()):
     if not img:
         await sauce.finish("No image")
 
-    res = requests.get(img)
+    async with session.get(img) as response:
+        raw = await response.read()
+        response.close()
 
-    try:
-        res = requests.post(
-            'https://saucenao.com/search.php?db=999&output_type=2&api_key=' + global_config.saucenao_api_key,
-            files={
-                'file': ('image.' + imghdr.what('', h=res.content), res.content)
-            },
-            proxies=global_config.saucenao_proxy
-        )
-    except Exception as e:
-        await sauce.finish('[ERROR] ' + str(e))
+    mime = puremagic.from_string(raw, mime=True)
+    ext = mimetypes.guess_extension(mime)
 
-    if res.status_code != 200:
-        await sauce.finish(f"[ERROR] Request returned {res.status_code}")
+    with aiohttp.MultipartWriter('form-data') as mp:
+        mp.append(raw, { 'Content-Type': mime }).set_content_disposition('form-data', name='file', filename='image' + ext)
+        async with session.post('https://saucenao.com/search.php?db=999&output_type=2&api_key=' + config.saucenao_api_key) as response:
+            if not response.ok:
+                await sauce.finish('Error occurred while searching')
+            
+            result = await response.json()
+            
+            if int(result['header']['status']) > 0:
+                await sauce.finish("SauceNAO server error. Try again later")
+            
+            if int(result['header']['status']) < 0:
+                await sauce.finish("Client error")
 
-    s = json.loads(res.content)
+            a = []
+            hidden = 0
+            min_similarity = float(result['header']['minimum_similarity'])
 
-    print(s)
-
-    if int(s['header']['status']) > 0:
-        sauce.finish("SauceNAO server error. Try again later")
-    
-    if int(s['header']['status']) < 0:
-        sauce.finish("Client error")
-
-    a = []
-    hidden = 0
-    min_similarity = float(s['header']['minimum_similarity'])
-
-    a.append(
-        [ MessageSegment.text(f'{s["header"]["short_remaining"]} requests remaining in 30s\n{s["header"]["long_remaining"]} requests remaining in 24h') ]
-    )
-
-    for i in s['results']:
-        id = i['header']['index_id']
-        similarity = float(i['header']['similarity'])
-
-        if similarity < min_similarity:
-            hidden = hidden + 1
-            continue
-
-        if db_formats.get(id):
-            thumb = requests.get(i['header']['thumbnail'], proxies=config.PROXY).content
             a.append(
-                [ MessageSegment.image(thumb) ]
-            )
-            a.append(
-                [ MessageSegment.text('Similarity: ' + i['header']['similarity'] + '%') ]
-            )
-            a.append(
-                [ MessageSegment.text(db_formats[id].format(**i['data'])) ]
-            )
-        else:
-            a.append(
-                [ MessageSegment.text(json.dumps(db_formats[id], ensure_ascii=False, indent=4))]
+                [ MessageSegment.text(f'{result["header"]["short_remaining"]} requests remaining in 30s\n{result["header"]["long_remaining"]} requests remaining in 24h') ]
             )
 
-    if hidden:
-        a.append(
-            [ MessageSegment.text(f'{hidden} images are hidden due to low similarity') ]
-        )
+            for i in result['results']:
+                id = i['header']['index_id']
+                similarity = float(i['header']['similarity'])
 
-    await send_forward_msg(bot, event, a, 'nmBot', 1278106057)
+                if similarity < min_similarity:
+                    hidden = hidden + 1
+                    continue
+
+                if db_formats.get(id):
+                    async with session.get(i['header']['thumbnail']) as thumbnail:
+                        a.append([ MessageSegment.image(await thumbnail.read())])
+                    a.append([ MessageSegment.text('Similarity: ' + i['header']['similarity'] + '%') ])
+                    a.append([ MessageSegment.text(db_formats[id].format(**i['data'])) ])
+                else:
+                    a.append([ MessageSegment.text(json.dumps(db_formats[id], ensure_ascii=False, indent=4))])
+
+            if hidden:
+                a.append([ MessageSegment.text(f'{hidden} images are hidden due to low similarity') ])
+
+            await send_forward_msg(bot, event, a, 'nmBot', 1278106057)
+
+    await session.close()
+

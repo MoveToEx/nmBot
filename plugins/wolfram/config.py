@@ -1,6 +1,5 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 
 
-class Config(BaseSettings):
-    class Config:
-        extra = "ignore"
+class Config(BaseModel):
+    wolframalpha_api_key: str

@@ -3,9 +3,9 @@ from pydantic import BaseModel, Extra
 from pathlib import Path
 
 class Config(BaseModel, extra=Extra.ignore):
-    WORKDIR = Path('data/ghsync').absolute()
-    DB_PATH = WORKDIR / 'commits.json'
-    REPO = [
+    WORKDIR: Path = Path('data/ghsync').absolute()
+    DB_PATH: Path = WORKDIR / 'commits.json'
+    REPO: list[dict] = [
         {
             "file": Path('data/icu/icu.json').absolute(),
             "name": 'ICU',

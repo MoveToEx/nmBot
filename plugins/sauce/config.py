@@ -1,9 +1,6 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 
-from pathlib import Path
-
-class Config(BaseSettings):
-    CACHE_DIR = Path('data/sauce/cache').absolute()
+class Config(BaseModel):
+    saucenao_api_key: str
     
-    class Config:
-        extra = "ignore"
+    

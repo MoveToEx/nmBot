@@ -1,4 +1,5 @@
 from nonebot.matcher import Matcher
+from nonebot import logger
 from nonebot.adapters import Message
 from nonebot.params import *
 from nonebot.adapters.onebot.v11.helpers import MessageSegment
@@ -25,13 +26,14 @@ def extract_image(event: Event):
     res = []
     data = event.dict()
     if data.get('reply', None):
+        logger.debug('Reply content: ' + data['reply']['message'])
         for seg in data['reply']['message']:
             if seg.type == 'image':
                 res.append(seg)
-    else:
-        for seg in event.get_message():
-            if seg.type == 'image':
-                res.append(seg)
+    logger.debug('Message content: ' + event.get_message())
+    for seg in event.get_message():
+        if seg.type == 'image':
+            res.append(seg)
     return res
 
 async def find_user(bot: Bot, kw: str) -> list[int]:

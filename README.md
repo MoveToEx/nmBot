@@ -1,12 +1,21 @@
-# movetobot
+# nmBot
 
-## How to start
+A chatbot for Tencent QQ, with a focus on Long Yutao stickers also bringing other utilities.
 
-1. generate project using `nb create` .
-2. create your plugin using `nb plugin create` .
-3. writing your plugins under `src/plugins` folder.
-4. run your bot using `nb run` .
+## Setup
 
-## Documentation
+```sh
+$ git clone https://github.com/MoveToEx/nmBot
+$ cd nmBot
+$ poetry install
+$ cp .env.template .env
+$ vim .env # Fill in env variables
+$ nb run
+```
 
-See [Docs](https://v2.nonebot.dev/)
+## ToDo
+
+- [ ] Fix b23 anti-tracking
+- [ ] Add searching for similar images
+- [ ] Improve synchronization with Github repos
+- [ ] Bring back generation from template function

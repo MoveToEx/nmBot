@@ -3,7 +3,7 @@
 
 import nonebot
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
-
+from nonebot.adapters.console import Adapter as ConsoleAdapter
 # Custom your logger
 # 
 # from nonebot.log import logger, default_format
@@ -18,7 +18,7 @@ nonebot.init()
 app = nonebot.get_asgi()
 
 driver = nonebot.get_driver()
-driver.register_adapter(ONEBOT_V11Adapter)
+driver.register_adapter(ConsoleAdapter)
 
 # nonebot.load_builtin_plugins("echo")
 

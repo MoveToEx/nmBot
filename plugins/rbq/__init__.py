@@ -2,7 +2,7 @@ import random
 import json
 import asyncio
 from time import time
-from nonebot import get_driver, on_command
+from nonebot import get_driver, on_command, get_plugin_config
 from nonebot.params import *
 from nonebot.adapters.onebot.v11.helpers import Message, MessageSegment
 from nonebot.adapters.onebot.v11.event import *
@@ -12,8 +12,7 @@ from nonebot.adapters.onebot.v11.helpers import Cooldown
 
 from .config import Config
 
-global_config = get_driver().config
-config = Config.parse_obj(global_config)
+config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="RBQ",

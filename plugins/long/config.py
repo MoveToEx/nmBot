@@ -1,11 +1,7 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 from pathlib import Path
 
 
-class Config(BaseSettings):
-    WORKDIR = Path('data/long').absolute()
-    MAX_REPEAT = 3
-    LONG_HUB_URL = 'http://localhost:8081'
-
-    class Config:
-        extra = "ignore"
+class Config(BaseModel):
+    long_workdir: Path = Path('data/long').absolute()
+    long_upstream: str = 'https://longhub.top/'

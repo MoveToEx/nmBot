@@ -1,8 +1,7 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 
 
-class Config(BaseSettings):
-    REPEAT_THRESHOLD = 3
+class Config(BaseModel):
+    REPEAT_THRESHOLD: int = 3
 
-    class Config:
-        extra = "ignore"
+    

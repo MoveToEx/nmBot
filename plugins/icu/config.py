@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 from pathlib import Path
 
-class Config(BaseModel, extra=Extra.ignore):
-    WORKDIR = Path('data/icu').absolute()
-    DB_PATH = WORKDIR / 'icu.json'
+class Config(BaseModel, extra='ignore'):
+    WORKDIR: Path = Path('data/icu').absolute()
+    DB_PATH: Path = WORKDIR / 'icu.json'
