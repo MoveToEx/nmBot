@@ -1,9 +1,5 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
-from pathlib import Path
-
-
-class Config(BaseModel, extra=Extra.ignore):
-    WORKDIR: Path = Path('data/animethesaurus').absolute()
-    DB_PATH: Path = WORKDIR / 'data.json'
+class Config(BaseModel):
+    data_root: str
 

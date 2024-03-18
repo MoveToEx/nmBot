@@ -7,27 +7,33 @@ from nonebot import logger
 from .config import Config
 
 from pathlib import Path
+import os
 import json
 
 config = get_plugin_config(Config)
 
-l = Path('data/bracket_closer/list.json')
+workdir = Path(config.data_root).absolute() / 'bracket_closer'
+
+disabled_path = workdir / 'disabled.json'
 
 disabled: dict[str, bool] = {}
 
-if not l.exists():
-    with open(l) as f:
+if not workdir.exists():
+    os.makedirs(workdir)
+
+if not disabled_path.exists():
+    with open(disabled_path, 'w') as f:
         f.write('{}')
         f.close()
 
-with open(l) as f:
+with open(disabled_path) as f:
     disabled = json.load(f)
     f.close()
 
 def save():
     global disabled, l
 
-    with open(l, 'w') as f:
+    with open(disabled_path, 'w') as f:
         f.write(json.dumps(disabled))
 
 closed = {

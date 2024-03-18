@@ -1,7 +1,10 @@
 import random
 import json
 import asyncio
+import os
+from pathlib import Path
 from time import time
+
 from nonebot import get_driver, on_command, get_plugin_config
 from nonebot.params import *
 from nonebot.adapters.onebot.v11.helpers import Message, MessageSegment
@@ -35,10 +38,21 @@ __plugin_meta__ = PluginMetadata(
 
 rbq = on_command('日', aliases={'囸'}, priority=5, block=True)
 
+workdir = Path(config.data_root).absolute() / 'rbq'
+db_path = workdir / 'prompts.json'
+
 prompts = {}
 
-with open(config.WORKDIR / 'prompts.json', 'r', encoding='utf8') as f:
-    prompts = json.loads(f.read())
+if not workdir.exists():
+    os.makedirs(workdir)
+
+if not db_path.exists():
+    with open(db_path, 'w') as f:
+        f.write('{}')
+        f.close()
+
+with open(db_path, 'r', encoding='utf8') as f:
+    prompts = json.load(f)
 
 @rbq.handle(parameterless=[Cooldown(cooldown=60, prompt='你已经射不出来任何东西了！')])
 async def rbq_main(bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):

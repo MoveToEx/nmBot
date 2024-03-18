@@ -1,16 +1,10 @@
 from nonebot import *
-from nonebot.matcher import Matcher
 from nonebot.params import *
-from nonebot.adapters.onebot.v11.helpers import MessageSegment, Message
+from nonebot.adapters.onebot.v11.helpers import Message
 from nonebot.adapters.onebot.v11.event import *
 from nonebot.adapters.onebot.v11.bot import Bot
-from nonebot.typing import T_State
 from nonebot.plugin import PluginMetadata
 from nonebot.permission import SUPERUSER
-
-from .config import Config
-
-config = get_plugin_config(Config)
 
 __plugin_meta__ = PluginMetadata(
     name="Utility",
@@ -24,7 +18,7 @@ __plugin_meta__ = PluginMetadata(
 )
 
 
-# friend_add = on_notice(block=True)
+friend_add = on_notice(block=True)
 
 broadcast = on_command('broadcast', priority=90, block=True, permission=SUPERUSER)
 ping = on_command('ping', priority=1, block=True)
@@ -40,11 +34,6 @@ async def _(bot: Bot, msg: Message = CommandArg()):
 async def _():
     await ping.finish('pong')
 
-# @friend_add.handle()
-# async def _(bot: Bot, event: FriendAddNoticeEvent):
-#     await bot.set_friend_add_request(approve=True)
-
-# @on_request('friend')
-# async def _(bot: Bot, event: RequestEvent):
-#     await bot.call_api('')
-#     print(event.dict())
+@friend_add.handle()
+async def _(bot: Bot, event: FriendAddNoticeEvent):
+    await bot.set_friend_add_request(approve=True)

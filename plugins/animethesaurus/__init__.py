@@ -6,6 +6,7 @@ from nonebot.config import Config
 from nonebot.adapters.onebot.v11.bot import Bot
 from nonebot.adapters.onebot.v11.event import *
 
+from pathlib import Path
 import random
 import json
 from .config import Config
@@ -20,13 +21,24 @@ __plugin_meta__ = PluginMetadata(
     usage=f"""<empty>"""
 )
 
+workdir = Path(config.data_root).absolute() / 'animethesaurus'
+db_path = workdir / 'data.json'
+
+if not workdir.exists():
+    os.makedirs(workdir)
+
+if not db_path.exists():
+    with open(db_path, 'w') as f:
+        f.write('[]')
+        f.close()
+
 ats = on_message(rule=to_me(), priority=99)
 poke = on_notice()
-with open(config.DB_PATH, 'r', encoding='utf8') as f:
+
+with open(db_path, 'r', encoding='utf8') as f:
     db = json.loads(f.read())
 
 def get_content(kw: str) -> list[str]:
-
     a = [ x for x in db if kw in x['keyword']]
 
     if len(a) == 0:
@@ -52,6 +64,8 @@ async def _(matcher: Matcher, event: Event):
     s = event.get_message().extract_plain_text().strip()
 
     result = get_content(s)
+
+    logger.debug(result)
 
     if result == None:
         return

@@ -16,6 +16,7 @@ import requests
 import os
 import random
 import seqsim
+from pathlib import Path
 from functional import seq
 
 from .config import Config
@@ -44,8 +45,14 @@ DISABLED: .long.plot.list|pll 显示所有可用模板
 )
 
 config = get_plugin_config(Config)
-if not config.long_workdir.exists():
-    os.makedirs(config.long_workdir)
+
+workdir = Path(config.data_root).absolute() / 'long'
+
+if not workdir.exists():
+    os.makedirs(workdir)
+
+if not workdir.joinpath('post').exists():
+    workdir.joinpath('post').mkdir()
 
 db = Database()
 

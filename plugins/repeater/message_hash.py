@@ -14,6 +14,8 @@ async def hash(msg: Message):
             session = aiohttp.ClientSession()
             async with session.get(seg.data['url']) as response:
                 res.update(await response.read())
+                response.close()
+            await session.close()
         else:
             res.update(str(seg).encode('utf8'))
     return res.hexdigest()

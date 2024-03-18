@@ -11,7 +11,7 @@ config = get_plugin_config(Config)
 __plugin_meta__ = PluginMetadata(
     name="Repeater",
     description="",
-    usage=f"连续{config.REPEAT_THRESHOLD}条相同消息自动复读",
+    usage=f"连续{config.repeater_threshold}条相同消息自动复读",
 )
 
 repeater = on_message(priority=99)
@@ -31,7 +31,7 @@ async def _(event: GroupMessageEvent):
         }
     elif msg_hash == data[event.group_id]['hash']:
         data[event.group_id]['count'] += 1
-        if data[event.group_id]['count'] == config.REPEAT_THRESHOLD:
+        if data[event.group_id]['count'] == config.repeater_threshold:
             await repeater.send(event.get_message())
             data[event.group_id]['count'] += 1
     else:

@@ -3,5 +3,5 @@ from pathlib import Path
 
 
 class Config(BaseModel):
-    long_workdir: Path = Path('data/long').absolute()
+    data_root: str
     long_upstream: str = 'https://longhub.top/'

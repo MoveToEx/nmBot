@@ -25,19 +25,19 @@ async def help_main(bot: Bot, event: Event, arg: Message = CommandArg()):
         suc = 0
         for i in plugins:
             if i.metadata:
-                if i.metadata.name == s:
+                if i.metadata.name.upper() == s.upper():
                     suc = 1
                     await help.finish(i.metadata.usage)
         if not suc:
-            await help.finish(f"[ERROR] {s} not found")
-    else:
-        for i in plugins:
-            if i.metadata:
-                s = ""
-                if i.metadata.name:
-                    s += "Plugin: " + i.metadata.name + '\n'
-                if i.metadata.usage:
-                    s += "Usage: \n" + i.metadata.usage + '\n'
-                res.append(MessageSegment.text(s))
-        await send_forward_msg(bot, event, res)
+            await help.finish(f"Error: {s} not found")
+
+    for i in plugins:
+        if i.metadata:
+            s = ""
+            if i.metadata.name:
+                s += "Plugin: " + i.metadata.name + '\n'
+            if i.metadata.usage:
+                s += "Usage: \n" + i.metadata.usage + '\n'
+            res.append(MessageSegment.text(s))
+    await send_forward_msg(bot, event, res)
     

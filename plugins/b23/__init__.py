@@ -3,13 +3,9 @@ from nonebot.adapters import Message
 from nonebot.matcher import Matcher
 from nonebot.params import *
 
-from .config import Config
-
 import requests
 import re
 from bs4 import BeautifulSoup
-
-config = get_plugin_config(Config)
 
 b23 = on_message(priority=90, block=False)
 

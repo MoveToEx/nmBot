@@ -1,7 +1,4 @@
-from nonebot.matcher import Matcher
-from nonebot.adapters import Message
 from nonebot.params import *
-from nonebot.adapters.onebot.v11.helpers import MessageSegment
 from nonebot.adapters.onebot.v11.event import *
 from nonebot.adapters.onebot.v11.bot import Bot
 

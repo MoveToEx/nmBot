@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 
-class Config(BaseModel, extra=Extra.ignore):
-    """Plugin Config Here"""
+class Config(BaseModel):
+    data_root: str
