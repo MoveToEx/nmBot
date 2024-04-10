@@ -1,4 +1,4 @@
-from nonebot import on_command, get_plugin_config, on_message
+from nonebot import on_command, get_plugin_config, on_message, on_notice
 from nonebot.config import Config as GlobalConfig
 from nonebot.adapters import Message
 from nonebot.params import *
@@ -73,6 +73,23 @@ hub_bind = on_command(('hub', 'bind'), priority=7, block=True)
 hub_account = on_command(('hub', 'account'), priority=7, block=True)
 hub_unbind = on_command(('hub', 'unbind'), priority=7, block=True)
 hub_purge = on_command(('hub', 'purge'), priority=7, block=True)
+poke = on_notice(priority=7, block=True)
+
+@poke.handle()
+async def _(bot: Bot, event: PokeNotifyEvent):
+    self_id = await bot.get_login_info().get('user_id')
+    if self_id != event.target_id:
+        return
+    
+    image = db.get([])
+
+    with open(random.choice(image).image) as f:
+        msg = MessageSegment.image(f.read())
+
+    if event.group_id:
+        await bot.send_group_msg(group_id=event.group_id, message=Message([ msg ]))
+    else:
+        await bot.send_private_msg(user_id=event.user_id, message=Message([ msg ]))
 
 @hub_sync.handle()
 async def hub_sync_():
@@ -168,17 +185,10 @@ async def long_(arg: Message = CommandArg()):
         logger.debug(result)
         s = seq(result).map(lambda x: (x, seqsim.edit.levenshtein_dist(x.text, text[0]))).to_list()
         result = sorted(s, key=lambda x: x[1])
-
         best_match_diff = result[0][1]
-
-        logger.debug(seq(result).map(lambda x: x[0].text).to_list())
-        
         result = seq(result).filter(lambda x: x[1] == best_match_diff).map(lambda x: x[0]).to_list()
         
-        logger.debug(seq(result).map(lambda x: x.text).to_list())
-        post = random.choice(result)
-    else:
-        post = random.choice(result)
+    post = random.choice(result)
 
     with open(post.image, 'rb') as f:
         await long.finish([ MessageSegment.image(f.read()) ])
@@ -306,6 +316,8 @@ async def long_upload_(event: PrivateMessageEvent | GroupMessageEvent, args: Mes
         [success, data] = await db.upload(raw, args.extract_plain_text().split(), str(event.user_id))
     except aiohttp.ClientError as e:
         await long_upload.finish('Failed when uploading: ' + str(e))
+    except e:
+        await long_upload.finish('Unexpected exception: ' + str(e))
 
     if not success:
         await long_upload.finish('Failed when uploading: ' + data)

@@ -35,6 +35,8 @@ class Post:
         self.text = kwargs.get('text', '')
         if kwargs.get('tags'):
             self.tags = kwargs.get('tags').split(',')
+        else:
+            self.tags = []
         self.aggr = kwargs.get('aggr', '')
 
 class Shortcut:
@@ -265,7 +267,7 @@ class Database:
 
         for post in posts:
             dirname = self.rootdir / 'post'
-            tags = ','.join([ tag['name'] for tag in post['tags'] ])
+            tags = ''.join([ '\'' + tag['name'] + '\'' for tag in post['tags'] ])
 
             if not dirname.joinpath(post['image']).exists():
                 uncached_images.append((dirname / post['image'], post['imageURL']))
@@ -343,7 +345,7 @@ class Database:
                         where.append('tags LIKE ?')
                     elif sel.op == 'exclude':
                         where.append('tags NOT LIKE ?')
-                    args.append('%' + sel.value + '%')
+                    args.append('%\'' + sel.value + '\'%')
                 elif sel.type == 'id':
                     where.append('id LIKE ?')
                     args.append('%' + sel.value.replace('*', '%') + '%')
