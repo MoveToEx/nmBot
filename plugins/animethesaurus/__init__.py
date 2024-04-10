@@ -33,7 +33,6 @@ if not db_path.exists():
         f.close()
 
 ats = on_message(rule=to_me(), priority=99)
-poke = on_notice()
 
 with open(db_path, 'r', encoding='utf8') as f:
     db = json.loads(f.read())
@@ -47,16 +46,6 @@ def get_content(kw: str) -> list[str]:
     a = random.choice(a)
 
     return random.choice(a['content'])
-
-@poke.handle()
-async def _(bot: Bot, event: PokeNotifyEvent):
-    self_id = await bot.get_login_info().get('user_id')
-    if self_id != event.target_id:
-        return
-    if event.group_id:
-        await bot.send_group_msg(group_id=event.group_id, message=get_content('戳'))
-    else:
-        await bot.send_private_msg(user_id=event.user_id, message=get_content('戳'))
 
 
 @ats.handle()
