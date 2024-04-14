@@ -1,5 +1,5 @@
-from nonebot.params import *
-from nonebot.adapters.onebot.v11.event import *
+
+from nonebot.adapters.onebot.v11.event import Event, PrivateMessageEvent
 from nonebot.adapters.onebot.v11.bot import Bot
 
 async def send_forward_msg(bot: Bot, event: Event, message: list):

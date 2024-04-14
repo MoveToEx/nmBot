@@ -31,11 +31,12 @@ pyfunctional = "^1.4.3"
 nonebot2 = {extras = ["fastapi"], version = "^2.2.1"}
 pydantic-settings = "^2.2.1"
 google-generativeai = "^0.5.0"
+nonebot-plugin-datastore = "^1.2.0"
 
 [tool.nonebot]
-plugins = ["nonebot_plugin_localstore", "nonebot_plugin_apscheduler"]
+plugins = ["nonebot_plugin_localstore", "nonebot_plugin_apscheduler", "nonebot_plugin_datastore"]
 plugin_dirs = ["plugins"]
-adapters = [{name = "mirai2", module_name = "nonebot.adapters.mirai2"}, {name = "console", module_name = "nonebot.adapters.console"}, {name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11"}]
+adapters = [{name = "console", module_name = "nonebot.adapters.console"}, {name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11"}]
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

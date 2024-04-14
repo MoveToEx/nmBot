@@ -1,8 +1,7 @@
 from nonebot import on_command, get_loaded_plugins
-from nonebot.adapters import Message
-from nonebot.params import *
+from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11.helpers import MessageSegment
-from nonebot.adapters.onebot.v11.event import *
+from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11.bot import Bot
 from nonebot.plugin import PluginMetadata
 
@@ -29,7 +28,7 @@ async def help_main(bot: Bot, event: Event, arg: Message = CommandArg()):
                     suc = 1
                     await help.finish(i.metadata.usage)
         if not suc:
-            await help.finish(f"Error: {s} not found")
+            await help.finish(f"Error: Plugin {s} not found")
 
     for i in plugins:
         if i.metadata:

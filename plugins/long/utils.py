@@ -22,15 +22,12 @@ async def send_forward_msg(bot: Bot, event: Event, message: list):
     else:
         await bot.call_api('send_group_forward_msg', group_id=event.group_id, messages=message)
 
-def extract_image(event: Event):
+def extract_image(event: GroupMessageEvent | PrivateMessageEvent):
     res = []
-    data = event.dict()
-    if data.get('reply', None):
-        logger.debug('Reply content: ' + data['reply']['message'])
-        for seg in data['reply']['message']:
+    if event.reply:
+        for seg in event.reply.message:
             if seg.type == 'image':
                 res.append(seg)
-    logger.debug('Message content: ' + event.get_message())
     for seg in event.get_message():
         if seg.type == 'image':
             res.append(seg)
