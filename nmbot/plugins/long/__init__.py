@@ -65,7 +65,7 @@ __plugin_meta__ = PluginMetadata(
 )
 
 def is_poke(bot: Bot, event: Event) -> bool:
-    return event.notice_type == 'notify' and event.sub_type == 'poke'
+    return event.notice_type == 'notify' and event.sub_type == 'poke' and event.self_id == event.target_id
 
 poke = on_notice(is_poke, priority=7, block=True)
 long = on_command('long', aliases={'l'}, priority=8, block=True)
