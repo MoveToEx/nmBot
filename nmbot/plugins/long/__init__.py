@@ -71,7 +71,7 @@ def is_poke(bot: Bot, event: Event) -> bool:
 poke = on_notice(is_poke, priority=7, block=True)
 long = on_command('long', aliases={'l'}, priority=8, block=True)
 long_search = on_alconna(Alconna(
-    '.l.search',
+    'l', 'search',
     Option('--id', Args['id', MultiVar(str)]),
     Option('--id-regex', Args['id_regex', MultiVar(str)]),
     Option('-t|--text', Args['text_include', MultiVar(str)]),
@@ -81,14 +81,14 @@ long_search = on_alconna(Alconna(
     Option('-eg|--tag-exclude', Args['tag_exclude', MultiVar(str)]),
     Option('-r|--rating', Args['rating', MultiVar(str)]),
     Option('--range', Args['range', r'rep:(\d*)(:?)(\d*)']),
-), priority=7, block=True)
+), priority=7, block=True, use_cmd_sep=True, use_cmd_start=True)
 long_upload = on_alconna(Alconna(
-    '.l.upload',
+    'l', 'upload',
     Option('-w|--text', Args['text', str], default=''),
     Option('-t|--tag', Args['tag', MultiVar(str)], default=['tagme']),
     Option('-r|--rating', Args['rating', Literal['n', 'm', 'v', 'none', 'moderate', 'violent']], default='none'),
     Option('-f|--force', default=False, action=store_true),
-), aliases={'upload'}, priority=7, block=True)
+), aliases={'upload'}, priority=7, block=True, use_cmd_sep=True, use_cmd_start=True)
 
 shortcut = on_message(priority=9, block=False)
 shortcut_add = on_alconna(Alconna(
@@ -175,6 +175,9 @@ async def long_search_(bot: Bot, event: GroupMessageEvent | PrivateMessageEvent,
             start = end = int(x)
 
     result = await client.search(session, **params.all_matched_args)
+
+    if len(result) == 0:
+        await long_search.finish('No result found')
 
     await send_forward_msg(bot, event, seq(result).slice(start, end).map(lambda i: Message([
         MessageSegment.text("ID: %s\nText: %s\nTags: %s\nRating: %s\n" % (i.id, i.text, i.tags, i.rating)),
