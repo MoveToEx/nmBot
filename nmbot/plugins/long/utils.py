@@ -29,7 +29,10 @@ def extract_image(event: GroupMessageEvent | PrivateMessageEvent) -> list[str]:
     if event.reply:
         for seg in event.reply.message:
             if seg.type == 'image':
-                res.append(seg.data['url'])
+                url = seg.data['url']
+                if url.startswith('https://multimedia.nt.qq.com.cn'):
+                    url = 'http' + url.removeprefix('https')
+                res.append(url)
     for seg in event.get_message():
         if seg.type == 'image':
             res.append(seg.data['url'])
