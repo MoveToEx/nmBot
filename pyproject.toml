@@ -20,6 +20,7 @@ version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -30,14 +31,18 @@ aiohttp = "^3.10.5"
 pillow = "^10.4.0"
 nonebot-plugin-orm = {extras = ["sqlite"], version = "^0.7.6"}
 openai = "^1.44.0"
-google-generativeai = "^0.7.2"
+google-generativeai = "^0.8.3"
 nonebot-plugin-alconna = "^0.52.2"
 pyfunctional = "^1.5.0"
 puremagic = "^1.27"
-multipledispatch = "^1.0.0"
 pil-utils = "^0.1.12"
 seqsim = "^0.3.2"
 nonebot-plugin-apscheduler = "^0.5.0"
+grpcio = "^1.66.2"
+greenlet = "^3.1.1"
+jiter = "^0.6.1"
+httptools = "^0.6.2"
+nb-cli = "^1.4.2"
 
 
 [build-system]

@@ -11,7 +11,7 @@ from nonebot_plugin_alconna import on_alconna
 
 from datetime import timedelta, datetime
 from arclet.alconna import Args, Alconna, Option, Arparma
-import google.generativeai as genai
+# import google.generativeai as genai
 from functional import seq
 from sqlalchemy import select, update
 from sqlalchemy.sql import func
@@ -19,7 +19,7 @@ from nonebot_plugin_orm import async_scoped_session
 from nonebot.permission import SUPERUSER
 from .adapters.base import NMAdapterBase
 from .adapters.deepinfra import NMDeepInfraAdapter
-from .adapters.gemini import NMGeminiAdapter
+# from .adapters.gemini import NMGeminiAdapter
 
 from .util import get_object
 from .config import Config
@@ -51,10 +51,9 @@ nm <content>""",
 )
 
 config = get_plugin_config(Config)
-genai.configure(api_key = config.nm_gemini_api_key)
+# genai.configure(api_key = config.nm_gemini_api_key)
 
 nm = on_startswith('nm ', priority=11, block=False)
-nm_set = on_command(('nm', 'set'), priority=11, block=True)
 nm_usage = on_command(('nm', 'usage'), priority=11, block=True)
 nm_clear = on_command(('nm', 'clear'), priority=11, block=True)
 nm_set = on_alconna(
@@ -72,8 +71,8 @@ def create_adapter(model: str) -> NMAdapterBase:
     
     if model.find('/') != -1:
         result = NMDeepInfraAdapter(config.nm_deepinfra_api_key)
-    elif model.startswith('gemini'):
-        result = NMGeminiAdapter(config.nm_gemini_api_key)
+    # elif model.startswith('gemini'):
+    #     result = NMGeminiAdapter(config.nm_gemini_api_key)
     else:
         raise NotImplementedError(model)
     

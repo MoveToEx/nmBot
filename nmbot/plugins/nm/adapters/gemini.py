@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from google import generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+# from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 from .base import NMAdapterBase
 
@@ -36,6 +36,7 @@ class NMGeminiAdapter(NMAdapterBase):
     # Chat completion
     #   -> (response, response_tokens, prompt_tokens)
     async def chat_completion(self, history: list, message: str) -> tuple[str, int, int]:
+        return [ 'Gemini adapter disabled', 0, 0 ]
         model = genai.GenerativeModel(
             model_name=self.model,
             system_instruction=self.instruction
