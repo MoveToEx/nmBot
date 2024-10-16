@@ -21,6 +21,7 @@ from arclet.alconna import Args, Alconna, Option, Arparma, MultiVar, store_true
 import re
 import random
 import seqsim
+import puremagic
 from functional import seq
 from typing import Literal
 
@@ -196,7 +197,6 @@ async def long_upload_(event: GroupMessageEvent | PrivateMessageEvent, params: A
     if rating in rating_abbr:
         rating = rating_abbr[rating]
 
-    logger.debug('extracing image')
     image = extract_image(event)
 
     if len(image) == 0:
@@ -207,12 +207,14 @@ async def long_upload_(event: GroupMessageEvent | PrivateMessageEvent, params: A
     image = image[0]
 
     data = await fetch(image)
+    mime = puremagic.from_string(data, mime=True)
 
     await long_upload.send(f'''Metadata:
     Text: {text if text else '(no text)'}
     Tags: {' '.join(tags)}
     Rating: {rating}
-    Image Size: {len(data) / 1024:.2f} KiB
+    Image size: {len(data) / 1024:.2f} KiB
+    Content type: {mime}
 Uploading...''')
 
     try:
@@ -317,10 +319,10 @@ async def hub_account_(event: GroupMessageEvent | PrivateMessageEvent, session: 
     if result is None:
         await hub_account.finish('No valid binding found')
     
-    answer = f'Account binding of user {event.user_id}:'
+    answer = f'Account binding of user {event.user_id}:\n'
 
-    answer += f'\tID: {result['id']}'
-    answer += f'\tUsername: {result['name']}'
+    answer += f'\tID: {result['id']}\n'
+    answer += f'\tUsername: {result['name']}\n'
     answer += f'\tAccess key: {result['accessKey'][:2]}*****{result['accessKey'][-2:]}'
 
     await hub_account.finish(answer)
@@ -339,7 +341,7 @@ async def hub_sync_(event: GroupMessageEvent | PrivateMessageEvent, session: asy
 
     await hub_sync.finish('Success')
 
-@scheduler.scheduled_job('cron', hour='*/6', id='sync')
+@scheduler.scheduled_job('cron', hour='*/6', id='sync', misfire_grace_time=60)
 async def auto_sync():
     session = get_scoped_session()
 
