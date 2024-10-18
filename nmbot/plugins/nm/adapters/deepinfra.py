@@ -3,13 +3,11 @@ from .base import NMAdapterBase
 
 
 class NMDeepInfraAdapter(NMAdapterBase):
-    def __init__(self, apikey: str):
-        self.model: str = 'meta-llama/Meta-Llama-3-70B-Instruct'
-        self.instruction: str = None
-        self.client = AsyncOpenAI(
-            api_key = apikey,
-            base_url='https://api.deepinfra.com/v1/openai'
-        )
+    def __init__(self, apikey: str | None = None, model: str = 'meta-llama/Meta-Llama-3-70B-Instruct'):
+        self.model = model
+        self.instruction = ''
+        self.api_key = apikey
+        self.base_url = 'https://api.deepinfra.com/v1/openai'
 
     def _compose(self, history: list[tuple[str, str]], prompt: str) -> list[dict]:
         result = []
@@ -35,10 +33,17 @@ class NMDeepInfraAdapter(NMAdapterBase):
     def set_instruction(self, instruction: str):
         self.instruction = instruction
 
+    def set_api_key(self, api_key: str):
+        self.api_key = api_key
+
+    def is_available(self):
+        return self.api_key is not None
+
     async def chat_completion(self, history: list[tuple[str, str]], message: str) -> tuple[str, int, int]:
         message = self._compose(history, message)
+        client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
 
-        response = await self.client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=self.model,
             messages=message,
             stream=False

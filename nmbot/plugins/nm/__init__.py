@@ -4,21 +4,19 @@ require('nonebot_plugin_alconna')
 
 from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11.message import Message
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.adapters.console import MessageEvent
 from nonebot_plugin_alconna import on_alconna
 
 from datetime import timedelta, datetime
 from arclet.alconna import Args, Alconna, Option, Arparma
-# import google.generativeai as genai
 from functional import seq
 from sqlalchemy import select, update
 from sqlalchemy.sql import func
 from nonebot_plugin_orm import async_scoped_session
 from nonebot.permission import SUPERUSER
 from .adapters.base import NMAdapterBase
-# from .adapters.deepinfra import NMDeepInfraAdapter
+from .adapters.deepinfra import NMDeepInfraAdapter
 from .adapters.deepseek import NMDeepSeekAdapter
 # from .adapters.gemini import NMGeminiAdapter
 
@@ -45,40 +43,38 @@ __plugin_meta__ = PluginMetadata(
     name="NM Chat",
     description="Chat with LLMs",
     type='application',
-    usage=f""".nm.set <name> [-m|--model <model: {' | '.join(['disabled'] + list(INSTRUCTIONS.keys()))}>
+    usage=f""".nm.set <system_instruction: {' | '.join(['disabled'] + list(INSTRUCTIONS.keys()))}> [-m|--model <model: str>
 .nm.usage
+.nm.clear
 nm <content>""",
     config=Config,
 )
 
 config = get_plugin_config(Config)
-# genai.configure(api_key = config.nm_gemini_api_key)
 
 nm = on_startswith('nm ', priority=11, block=False)
 nm_usage = on_command(('nm', 'usage'), priority=11, block=True)
 nm_clear = on_command(('nm', 'clear'), priority=11, block=True)
 nm_set = on_alconna(
     Alconna(
-        '.nm.set',
+        'nm.set',
         Args['mode', str],
         Option('-m|--model', Args['model', str]),
     ),
     priority=11,
-    block=True
+    block=True,
+    use_cmd_start=True
 )
 
-def create_adapter(model: str) -> NMAdapterBase:
-    result = None
-    
-    if model.find('deepseek') != -1:
-        result = NMDeepSeekAdapter(config.nm_deepseek_api_key)
+def get_adapter(model: str) -> NMAdapterBase | None:
+    if model.find('/') != -1:
+        return NMDeepInfraAdapter(config.nm_deepinfra_api_key, model)    
+    elif model.startswith('deepseek'):
+        return NMDeepSeekAdapter(config.nm_deepseek_api_key, model)
     # elif model.startswith('gemini'):
     #     result = NMGeminiAdapter(config.nm_gemini_api_key)
     else:
-        raise NotImplementedError(model)
-    
-    result.set_model(model)
-    return result
+        return None
 
 @nm_clear.handle()
 async def nm_clear_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent, session: async_scoped_session):
@@ -93,7 +89,7 @@ async def nm_clear_(event: GroupMessageEvent | PrivateMessageEvent | MessageEven
 
 @nm_usage.handle()
 async def nm_usage_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent, session: async_scoped_session):
-    bound = datetime.today() + timedelta(days=-1)
+    bound = datetime.now() + timedelta(days=-1)
     typ, id = get_object(event)
 
     result = (await session.execute(
@@ -109,6 +105,13 @@ async def nm_set_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent,
 
     if mode not in INSTRUCTIONS.keys() and mode != 'disabled':
         await nm_set.finish("Invalid mode " + mode)
+
+    client = get_adapter(model)
+    if model:
+        if client is None:
+            await nm_set.finish('Invalid model ' + model)
+        if not client.is_available():
+            await nm_set.finish('Model ' + model + ' is currently unavailable')
 
     typ, id = get_object(event)
 
@@ -143,16 +146,17 @@ async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent |
         select(Setting) \
         .where(Setting.object_id == id, Setting.object_type == typ)
     )).scalar_one_or_none()
+    
+    if setting is None or setting.mode == 'disabled':
+        return
+    
+    matcher.stop_propagation()
+    
     history = (await session.execute(
         select(History) \
         .where(History.object_id == id, History.object_type == typ, History.visible == True) \
         .order_by(History.date)
     )).scalars().all()
-
-    if setting is None or setting.mode == 'disabled':
-        return
-
-    matcher.stop_propagation()
 
     prompt = event.get_message().extract_plain_text().strip().removeprefix('nm ')
 
@@ -169,7 +173,13 @@ async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent |
         await nm.send('Warning: 10k tokens reached. Context will be cleared after this message.')
         clear = True
 
-    client = create_adapter(setting.model)
+    client = get_adapter(setting.model)
+
+    if client is None:
+        await nm.finish('Failed: invalid model specified: ' + setting.model)
+    if not client.is_available():
+        await nm.finish('Failed: Model ' + setting.model + ' unavailable')
+
     client.set_instruction(INSTRUCTIONS[setting.mode])
 
     try:
@@ -182,14 +192,13 @@ async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent |
     session.add(History(object_id=id, object_type=typ, role='user', content=prompt, date=datetime.now(), visible=True, tokens=input_tokens))
     session.add(History(object_id=id, object_type=typ, role='assistant', content=ans, date=datetime.now(), visible=True, tokens=output_tokens))
 
-    await session.commit()
-
     if clear:
         await session.execute(
             update(History)
             .values(visible=False)
             .where(object_id=id, object_type=typ)
         )
-        await session.commit()
+
+    await session.commit()
 
     await nm.finish(ans)

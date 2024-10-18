@@ -5,14 +5,12 @@ from google import generativeai as genai
 from .base import NMAdapterBase
 
 class NMGeminiAdapter(NMAdapterBase):
-    def __init__(self, apikey: str):
-        self.model = 'gemini-1.5-pro-latest'
+    def __init__(self, apikey: str | None = None, model: str = 'gemini-1.5-pro-latest'):
+        self.model = model
         self.instruction = ''
-        genai.configure(api_key = apikey)
+        if apikey:
+            genai.configure(api_key=apikey)
 
-    """Compose message history
-        history: [[ role, message ]]
-        -> [{ role, parts }}]"""
     def _compose(self, history: list[tuple[str, str]], message: str) -> list[dict[str, str]]:
         result = []
         for [role, message] in history:
@@ -32,9 +30,13 @@ class NMGeminiAdapter(NMAdapterBase):
 
     def set_instruction(self, instruction: str):
         self.instruction = instruction
+
+    def set_api_key(self, api_key):
+        genai.configure(api_key=api_key)
+
+    def is_available(self):
+        return False
         
-    # Chat completion
-    #   -> (response, response_tokens, prompt_tokens)
     async def chat_completion(self, history: list, message: str) -> tuple[str, int, int]:
         return [ 'Gemini adapter disabled', 0, 0 ]
         model = genai.GenerativeModel(
