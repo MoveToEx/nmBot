@@ -196,7 +196,7 @@ async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent |
         await session.execute(
             update(History)
             .values(visible=False)
-            .where(object_id=id, object_type=typ)
+            .where(History.object_id==id, History.object_type==typ)
         )
 
     await session.commit()
