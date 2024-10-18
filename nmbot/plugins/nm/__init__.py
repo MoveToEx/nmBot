@@ -18,7 +18,8 @@ from sqlalchemy.sql import func
 from nonebot_plugin_orm import async_scoped_session
 from nonebot.permission import SUPERUSER
 from .adapters.base import NMAdapterBase
-from .adapters.deepinfra import NMDeepInfraAdapter
+# from .adapters.deepinfra import NMDeepInfraAdapter
+from .adapters.deepseek import NMDeepSeekAdapter
 # from .adapters.gemini import NMGeminiAdapter
 
 from .util import get_object
@@ -69,8 +70,8 @@ nm_set = on_alconna(
 def create_adapter(model: str) -> NMAdapterBase:
     result = None
     
-    if model.find('/') != -1:
-        result = NMDeepInfraAdapter(config.nm_deepinfra_api_key)
+    if model.find('deepseek') != -1:
+        result = NMDeepSeekAdapter(config.nm_deepseek_api_key)
     # elif model.startswith('gemini'):
     #     result = NMGeminiAdapter(config.nm_gemini_api_key)
     else:
@@ -164,8 +165,8 @@ async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent |
     for entry in history:
         messages.append([ entry.role, entry.content ])
 
-    if sum(seq(history).map(lambda x: x.tokens)) > 1024 * 4:
-        await nm.send('Warning: 4k tokens reached. Context will be cleared after this message.')
+    if sum(seq(history).map(lambda x: x.tokens)) > 1024 * 10:
+        await nm.send('Warning: 10k tokens reached. Context will be cleared after this message.')
         clear = True
 
     client = create_adapter(setting.model)
