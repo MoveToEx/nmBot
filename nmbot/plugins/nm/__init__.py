@@ -6,6 +6,7 @@ from nonebot.plugin import PluginMetadata
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11.event import GroupMessageEvent, PrivateMessageEvent
 from nonebot.adapters.console import MessageEvent
+from nonebot.log import logger
 from nonebot_plugin_alconna import on_alconna
 
 from datetime import timedelta, datetime
@@ -15,6 +16,9 @@ from sqlalchemy import select, update
 from sqlalchemy.sql import func
 from nonebot_plugin_orm import async_scoped_session
 from nonebot.permission import SUPERUSER
+from contextlib import asynccontextmanager
+from asyncio import Lock
+
 from .adapters.base import NMAdapterBase
 from .adapters.deepinfra import NMDeepInfraAdapter
 from .adapters.deepseek import NMDeepSeekAdapter
@@ -66,6 +70,21 @@ nm_set = on_alconna(
     use_cmd_start=True
 )
 
+locks: dict[tuple[str, str], Lock] = {}
+
+@asynccontextmanager
+async def get_lock(type: str, id: str):
+    tup = (type, id)
+
+    if not locks.get(tup):
+        locks[tup] = Lock()
+    
+    async with locks[tup]:
+        yield
+    
+    if locks[tup]._waiters is None or len(locks[tup]._waiters) == 0:
+        locks.pop(tup)
+
 def get_adapter(model: str) -> NMAdapterBase | None:
     if model.find('/') != -1:
         return NMDeepInfraAdapter(config.nm_deepinfra_api_key, model)    
@@ -78,22 +97,24 @@ def get_adapter(model: str) -> NMAdapterBase | None:
 
 @nm_clear.handle()
 async def nm_clear_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent, session: async_scoped_session):
-    typ, id = get_object(event)
+    type, id = get_object(event)
 
-    stmt = update(History).where(History.object_type == typ, History.object_id == id).values(visible = False)
+    stmt = update(History).where(History.object_type == type, History.object_id == id).values(visible = False)
+    
+    async with get_lock(type, id):
+        await session.execute(stmt)
+        await session.commit()
 
-    await session.execute(stmt)
-    await session.commit()
-
-    await nm_clear.finish("OK: %s %d" % (typ, id))
+    await nm_clear.finish("Cleared context of %s %d" % (type, id))
 
 @nm_usage.handle()
 async def nm_usage_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent, session: async_scoped_session):
     bound = datetime.now() + timedelta(days=-1)
-    typ, id = get_object(event)
+    type, id = get_object(event)
 
     result = (await session.execute(
-        select(func.sum(History.tokens)).where(History.object_id == id, History.object_type == typ, History.date > bound)
+        select(func.sum(History.tokens))
+        .where(History.object_id == id, History.object_type == type, History.date > bound)
     )).scalar()
 
     await nm_usage.finish("Token usage over the last 24 hours: " + str(result))
@@ -113,92 +134,96 @@ async def nm_set_(event: GroupMessageEvent | PrivateMessageEvent | MessageEvent,
         if not client.is_available():
             await nm_set.finish('Model ' + model + ' is currently unavailable')
 
-    typ, id = get_object(event)
+    type, id = get_object(event)
 
-    await session.execute(
-        update(History)
-        .where(History.object_type == typ, History.object_id == id)
-        .values(visible=False)
-    )
+    async with get_lock(type, id):
+        await session.execute(
+            update(History)
+            .where(History.object_type == type, History.object_id == id)
+            .values(visible=False)
+        )
 
-    obj = await session.execute(
-        select(Setting).where(Setting.object_type == typ, Setting.object_id == id)
-    )
-    scalar = obj.scalar_one_or_none()
+        obj = await session.execute(
+            select(Setting).where(Setting.object_type == type, Setting.object_id == id)
+        )
+        scalar = obj.scalar_one_or_none()
 
-    if scalar is None:
-        session.add(Setting(object_type=typ, object_id=id, mode=mode, model=model))
-    else:
-        scalar.mode = mode
-        if model:
-            scalar.model = model
-            
-    await session.commit()
+        if scalar is None:
+            session.add(Setting(object_type=type, object_id=id, mode=mode, model=model))
+        else:
+            scalar.mode = mode
+            if model:
+                scalar.model = model
+                
+        await session.commit()
 
     await nm_set.finish('OK. History cleared.')
     
 
 @nm.handle()
 async def nm_(matcher: Matcher, event: GroupMessageEvent | PrivateMessageEvent | MessageEvent, session: async_scoped_session):
-    typ, id = get_object(event)
+    type, id = get_object(event)
     
     setting = (await session.execute(
         select(Setting) \
-        .where(Setting.object_id == id, Setting.object_type == typ)
+        .where(Setting.object_id == id, Setting.object_type == type)
     )).scalar_one_or_none()
     
     if setting is None or setting.mode == 'disabled':
         return
     
     matcher.stop_propagation()
-    
-    history = (await session.execute(
-        select(History) \
-        .where(History.object_id == id, History.object_type == typ, History.visible == True) \
-        .order_by(History.date)
-    )).scalars().all()
 
-    prompt = event.get_message().extract_plain_text().strip().removeprefix('nm ')
-
-    if len(prompt) == 0:
-        prompt = '*The user did not input anything.*'
-
-    messages = []
-    clear = False
-
-    for entry in history:
-        messages.append([ entry.role, entry.content ])
-
-    if sum(seq(history).map(lambda x: x.tokens)) > 1024 * 10:
-        await nm.send('Warning: 10k tokens reached. Context will be cleared after this message.')
-        clear = True
-
-    client = get_adapter(setting.model)
-
-    if client is None:
-        await nm.finish('Failed: invalid model specified: ' + setting.model)
-    if not client.is_available():
-        await nm.finish('Failed: Model ' + setting.model + ' unavailable')
-
-    client.set_instruction(INSTRUCTIONS[setting.mode])
-
-    try:
-        response, input_tokens, output_tokens = await client.chat_completion(messages, prompt)
-    except Exception as e:
-        await nm.finish('Exception raised: ' + str(e))
-
-    ans = response.strip()
-
-    session.add(History(object_id=id, object_type=typ, role='user', content=prompt, date=datetime.now(), visible=True, tokens=input_tokens))
-    session.add(History(object_id=id, object_type=typ, role='assistant', content=ans, date=datetime.now(), visible=True, tokens=output_tokens))
-
-    if clear:
-        await session.execute(
-            update(History)
-            .values(visible=False)
-            .where(History.object_id==id, History.object_type==typ)
+    async with get_lock(type, id):
+        stmt = (
+            select(History)
+            .where(History.object_id == id, History.object_type == type, History.visible == True)
+            .order_by(History.date)
         )
+        history = (await session.execute(
+            select(History) \
+            .where(History.object_id == id, History.object_type == type, History.visible == True) \
+            .order_by(History.date)
+        )).scalars().all()
 
-    await session.commit()
+        prompt = event.get_message().extract_plain_text().strip().removeprefix('nm ')
+
+        if len(prompt) == 0:
+            prompt = '*The user did not input anything.*'
+
+        messages = [ (item.role, item.content) for item in await session.scalars(stmt) ]
+        clear = False
+
+        if sum(seq(history).map(lambda x: x.tokens)) > 1024 * 10:
+            await nm.send('Warning: 10k tokens reached. Context will be cleared after this message.')
+            clear = True
+
+        client = get_adapter(setting.model)
+
+        if client is None:
+            await nm.finish('Failed: invalid model specified: ' + setting.model)
+        if not client.is_available():
+            await nm.finish('Failed: Model ' + setting.model + ' unavailable')
+
+        client.set_instruction(INSTRUCTIONS[setting.mode])
+
+        try:
+            response, input_tokens, output_tokens = await client.chat_completion(messages, prompt)
+        except Exception as e:
+            await nm.finish('Exception raised: ' + str(e))
+
+        ans = response.strip()
+
+        session.add(History(object_id=id, object_type=type, role='user', content=prompt, date=datetime.now(), visible=True, tokens=input_tokens))
+        session.add(History(object_id=id, object_type=type, role='assistant', content=ans, date=datetime.now(), visible=True, tokens=output_tokens))
+
+        if clear:
+            await session.execute(
+                update(History)
+                .values(visible=False)
+                .where(History.object_id==id, History.object_type==type)
+            )
+
+        await session.commit()
 
     await nm.finish(ans)
