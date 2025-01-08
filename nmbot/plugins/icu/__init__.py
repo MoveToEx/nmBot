@@ -8,7 +8,7 @@ from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import PrivateMessageEvent, GroupMessageEvent
 from nonebot_plugin_orm import async_scoped_session
 from nonebot_plugin_alconna import on_alconna
-from arclet.alconna import Alconna, Args, Arparma, Option
+from arclet.alconna import Alconna, Args, Arparma, Option, AllParam
 from sqlalchemy import select, func, delete
 from aiohttp import ClientSession
 
@@ -21,7 +21,8 @@ config = get_plugin_config(Config)
 __plugin_meta__ = PluginMetadata(
     name='ICU',
     description='发电机',
-    usage='''.icu| .fb | .发病 | .发癫 <object: str> [-i|--id <id: int>]
+    type='application',
+    usage='''.icu| .fb | .发病 | .发癫 [-i|--id <id: int>] <object: str>
 .icu.new <text: str>
 .icu.pull <url: str>
     Requires the response to be an array of strings. (string[])
@@ -36,8 +37,8 @@ Date = 'now' | 'today' | `${int}/${int}/${int}`'''
 
 icu = on_alconna(Alconna(
     'icu',
-    Args['text', str],
-    Option('-i|--id', Args['id', int])
+    Option('-i|--id', Args['id', int]),
+    Args['text', AllParam],
 ), aliases={'fb', '发病', '发癫'}, priority=7, block=True, use_cmd_start=True)
 insert = on_command(('icu', 'new'), priority=7, block=True)
 remove = on_command(('icu', 'remove'), priority=7, block=True)
@@ -48,9 +49,6 @@ drop = on_command(('icu', 'drop'), priority=7, block=True)
 async def icu_main(session: async_scoped_session, event: GroupMessageEvent | PrivateMessageEvent, arp: Arparma):
     id = arp.query[int]('id')
     text = arp.query[str]('text')
-
-    if text is None:
-        await icu.finish('No object specified')
 
     stmt = select(Entry)
 
